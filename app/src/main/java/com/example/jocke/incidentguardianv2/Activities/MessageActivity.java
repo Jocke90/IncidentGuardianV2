@@ -4,6 +4,8 @@ package com.example.jocke.incidentguardianv2.Activities;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -16,10 +18,13 @@ import com.example.jocke.incidentguardianv2.R;
 
 import org.w3c.dom.Text;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
 public class MessageActivity extends AppCompatActivity {
@@ -41,7 +46,7 @@ public class MessageActivity extends AppCompatActivity {
         message = (EditText) findViewById(R.id.editTextMessage);
         currentMessage = (TextView) findViewById(R.id.textViewCurrentMessage);
 
-        currentMessage.setText("Current message: " + readFile());
+        currentMessage.setText("Current message: " + readFileMessage());
 
         btnUpdateMessage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,40 +63,71 @@ public class MessageActivity extends AppCompatActivity {
             }
         });
     }
-    public void writeToFile(String data) {
-        try {
-            FileOutputStream fos = openFileOutput("emergency-text.txt", Context.MODE_PRIVATE);
-            fos.write(data.getBytes());
-            fos.close();
-            Toast.makeText(MessageActivity.this, "Message Updated!", Toast.LENGTH_SHORT).show();
-            currentMessage.setText("Current Message: " + data);
-        }
-        catch (IOException e) {
-            Log.e("Exception", "File write failed: " + e.toString());
-            Toast.makeText(MessageActivity.this, "Message Update Failed!", Toast.LENGTH_SHORT).show();
-        }
-    }
 
-    public String readFile(){
+    public void writeToFile(String data) {
+
+        String state;
+        state = Environment.getExternalStorageState();
+
+        if(Environment.MEDIA_MOUNTED.equals(state)) {
+            File root = Environment.getExternalStorageDirectory();
+            File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
+
+            if (!dir.exists()) {
+                dir.mkdir();
+            }
+
+            File file = new File(dir, "EmergencyMessage.txt");
+
+            try {
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data.getBytes());
+                fos.close();
+                Toast.makeText(MessageActivity.this, "Message updated!", Toast.LENGTH_SHORT).show();
+                currentMessage.setText("Current message: " + data);
+                message.setText("");
+
+            } catch (FileNotFoundException e) {
+
+            } catch (IOException ie) {
+                ie.printStackTrace();
+                Toast.makeText(MessageActivity.this, "Message Update Failed!", Toast.LENGTH_SHORT).show();
+            }
+        }
+        else{
+            Toast.makeText(this, "External Storage not found!", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+    public String readFileMessage(){
         String text = "";
+        File root = Environment.getExternalStorageDirectory();
+        File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
+        File file = new File(dir, "EmergencyMessage.txt");
+        StringBuilder sb = new StringBuilder();
 
         try{
-            FileInputStream fis = openFileInput("emergency-text.txt");
+            FileInputStream fis = new FileInputStream(file);
             if(fis != null) {
-                int size = fis.available();
-                byte[] buffer = new byte[size];
-                fis.read(buffer);
-                fis.close();
-                text = new String(buffer);
+                InputStreamReader isr = new InputStreamReader(fis);
+                BufferedReader buffer = new BufferedReader(isr);
+
+
+                while ((text = buffer.readLine()) != null) {
+                    sb.append(text);
+                }
             }
-            else{
-                currentMessage.setText("No message set yet.");
-            }
+
         }
-        catch (Exception e){
+        catch (FileNotFoundException e){
             e.printStackTrace();
-            Toast.makeText(MessageActivity.this, "Error readinig file!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MessageActivity.this, "Error reading file!", Toast.LENGTH_SHORT).show();
         }
-        return text;
+        catch(IOException e){
+            e.printStackTrace();
+        }
+        return sb.toString();
     }
+
+
 }

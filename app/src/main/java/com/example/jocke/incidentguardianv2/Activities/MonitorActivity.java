@@ -3,6 +3,7 @@ package com.example.jocke.incidentguardianv2.Activities;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -11,8 +12,11 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.SmsManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,6 +29,13 @@ import com.google.android.gms.location.FusedLocationProviderApi;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class MonitorActivity extends AppCompatActivity implements SensorEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
@@ -45,6 +56,11 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public Double acceX, acceY, acceZ;
     public Double gyroX, gyroY, gyroZ;
     private Double fall;
+
+    String contactInfo;
+    String phoneNr;
+    String message;
+
 
 
     @Override
@@ -160,15 +176,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
             if (fall < 3.0) {
-                if (myLatitude != null && myLongitude != null) {
-                    myLongitude = myLoc.getLongitude();
-                    myLatitude = myLoc.getLatitude();
-                    Toast.makeText(this, "Fall detected: " + "Long: " + String.valueOf(myLongitude) + " Lat: " + String.valueOf(myLatitude), Toast.LENGTH_SHORT).show();
-                }
-                else {
-                    Toast.makeText(this, "Fall detected: ", Toast.LENGTH_SHORT).show();
-
-                }
+                fallDetected();
             }
         }
         if (mySensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -183,6 +191,102 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
+
+    public void fallDetected(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("A fall was detected, are you ok?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        sendHelp();
+                        dialog.cancel();
+                    }
+                });
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    public String readFileContacts(){
+        String text = "";
+        File root = Environment.getExternalStorageDirectory();
+        File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
+        File file = new File(dir, "Contacts.txt");
+        StringBuilder sb = new StringBuilder();
+
+        try{
+            FileInputStream fis = new FileInputStream(file);
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader buffer = new BufferedReader(isr);
+
+
+            while ((text = buffer.readLine()) != null){
+                sb.append(text);
+                sb.append("-");
+            }
+
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+            Toast.makeText(MonitorActivity.this, "Error reading file!", Toast.LENGTH_SHORT).show();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+        return sb.toString();
+    }
+
+    public String readFileMessage(){
+        String text = "";
+        File root = Environment.getExternalStorageDirectory();
+        File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
+        File file = new File(dir, "EmergencyMessage.txt");
+        StringBuilder sb = new StringBuilder();
+
+        try{
+            FileInputStream fis = new FileInputStream(file);
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader buffer = new BufferedReader(isr);
+
+
+            while ((text = buffer.readLine()) != null){
+                sb.append(text);
+            }
+
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+            Toast.makeText(MonitorActivity.this, "Error reading file!", Toast.LENGTH_SHORT).show();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+        return sb.toString();
+    }
+
+    public void sendHelp(){
+        myLongitude = myLoc.getLongitude();
+        myLatitude = myLoc.getLatitude();
+
+        contactInfo = readFileContacts();
+        message = readFileMessage() + " GPS coordinates: Latitude: " + String.valueOf(myLatitude) + " Longitude: " + String.valueOf(myLongitude);
+        String[] split = contactInfo.split("-");
+        for(int i = 1; i < split.length; i = i + 2) {
+
+            phoneNr = split[i].trim();
+            sendSMS(phoneNr, message);
+        }
+    }
+
+    private void sendSMS(String phoneNumber, String message) {
+        SmsManager sms = SmsManager.getDefault();
+        sms.sendTextMessage(phoneNumber, null, message, null, null);
+    }
+
 
 
 }
