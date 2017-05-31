@@ -5,12 +5,14 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Now Monitoring"
+        android:textSize="40dp"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:text="My Location"
-        android:textSize="24sp" />
+        android:layout_marginTop="44dp" />
 
     <TextView
-        android:id="@+id/tvLatitude"
+        android:id="@+id/textViewLatitude"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
@@ -18,12 +20,21 @@
         android:textSize="18sp" />
 
     <TextView
-        android:id="@+id/tvLongitude"
+        android:id="@+id/textViewLongitude"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/tvLatitude"
+        android:layout_below="@+id/textViewLatitude"
         android:text="Longitude"
         android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/buttonStopMonitoring"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textViewLongitude"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="79dp"
+        android:text="Stop" />
 
 
 </RelativeLayout>

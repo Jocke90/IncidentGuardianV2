@@ -16,10 +16,10 @@
         android:id="@+id/buttonUpdate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="120dp"
-        android:text="Update Message" />
+        android:layout_marginBottom="15dp"
+        android:text="Update Message"
+        android:layout_above="@+id/buttonBack"
+        android:layout_centerHorizontal="true" />
 
     <Button
         android:id="@+id/buttonBack"
@@ -40,4 +40,14 @@
         android:inputType="textPersonName"
         android:layout_below="@+id/textView"
         android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:id="@+id/textViewCurrentMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:text="Current"
+        android:textSize="20dp"/>
+
 </RelativeLayout>

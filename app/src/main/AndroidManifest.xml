@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -22,6 +23,15 @@
         <activity
             android:name=".Activities.MonitorActivity"
             android:label="Monitor"/>
+        <activity
+            android:name=".Activities.MessageActivity"
+            android:label="Edit Emergency Message"/>
+        <activity
+            android:name=".Activities.ContactActivity"
+            android:label="Contacts"/>
+        <activity
+            android:name=".Activities.MenuActivity"
+            android:label="Menu"/>
     </application>
 
 </manifest>

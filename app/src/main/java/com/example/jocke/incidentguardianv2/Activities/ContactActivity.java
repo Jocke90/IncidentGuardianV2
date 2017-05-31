@@ -1,5 +1,7 @@
 package com.example.jocke.incidentguardianv2.Activities;
 
 
-public class ContactActivity {
+import android.support.v7.app.AppCompatActivity;
+
+public class ContactActivity extends AppCompatActivity{
 }

@@ -19,12 +19,22 @@
         android:id="@+id/textViewWelcome"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
         android:text="Welcome!"
         android:textSize="40dp"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         tools:layout_editor_absoluteY="48dp"
-        tools:layout_editor_absoluteX="103dp" />
+        tools:layout_editor_absoluteX="103dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="36dp" />
+
+    <Button
+        android:id="@+id/buttonReg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/buttonLogin"
+        android:layout_below="@+id/buttonLogin"
+        android:layout_marginTop="22dp"
+        android:text="Register" />
 
 </RelativeLayout>
