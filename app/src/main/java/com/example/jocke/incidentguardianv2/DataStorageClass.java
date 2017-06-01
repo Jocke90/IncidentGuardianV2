@@ -2,6 +2,7 @@ package com.example.jocke.incidentguardianv2;
 
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.example.jocke.incidentguardianv2.Activities.MainActivity;
 import com.example.jocke.incidentguardianv2.Entities.AccelerometerEntity;
@@ -24,21 +25,28 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
     int countAccelemeterValues = 0;
     int countGyrometerValues = 0;
     int countGpsValues = 0;
+    String time;
 
     public static class MyTaskParams {
         String type;
         ArrayList<Double> results;
+        boolean calledForHelp;
 
-        public MyTaskParams(String type, ArrayList<Double> results) {
+        public MyTaskParams(String type, ArrayList<Double> results, boolean calledForHelp) {
             this.type = type;
             this.results = results;
+            this.calledForHelp = calledForHelp;
         }
     }
 
     @Override
     protected Void doInBackground(MyTaskParams... params) {
         String type = params[0].type;
-        ArrayList<Double> results = params[1].results;
+        ArrayList<Double> results = new ArrayList<>();
+        Log.d("RESULTS ERROR", String.valueOf(results));
+        results.addAll(params[1].results);
+        Log.d("RESULTS ERROR", String.valueOf(results));
+        boolean calledForHelp = params[2].calledForHelp;
 
         try{
             CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
@@ -48,15 +56,19 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
 
             if(type.equals("Accelerometer")){
                 insertBatchAccelerometer(results);
+                results.clear();
             }
             else if(type.equals("Gyrometer")){
                 insertBatchGyrometer(results);
+                results.clear();
             }
             else if(type.equals("Gps")){
                 insertBatchGps(results);
+                results.clear();
             }
             else if(type.equals("Emergency")){
-                insertEmergencyEntity(results);
+                insertEmergencyEntity(results, calledForHelp);
+                results.clear();
             }
 
         }
@@ -79,7 +91,8 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
         TableBatchOperation batchOperation = new TableBatchOperation();
 
         while(countAccelemeterValues < accelerometerValues.size()){
-            AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", "Username+timestamp");
+            time = String.valueOf(System.currentTimeMillis());
+            AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", "Username" + time);
             accelerometerEntity.setType("Accelerometer");
             accelerometerEntity.setPosX(accelerometerValues.get(countAccelemeterValues));
             countAccelemeterValues++;
@@ -105,7 +118,8 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
         TableBatchOperation batchOperation = new TableBatchOperation();
 
         while(countGyrometerValues < gyrometerValues.size()){
-            GyrometerEntity gyrometerEntity = new GyrometerEntity("Username", "Username+timestamp");
+            time = String.valueOf(System.currentTimeMillis());
+            GyrometerEntity gyrometerEntity = new GyrometerEntity("Username", "Username" + time);
             gyrometerEntity.setType("Gyrometer");
             gyrometerEntity.setPosX(gyrometerValues.get(countGyrometerValues));
             countGyrometerValues++;
@@ -132,7 +146,8 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
         TableBatchOperation batchOperation = new TableBatchOperation();
 
         while(countGpsValues < gpsValues.size()){
-            GpsEntity gpsEntity = new GpsEntity("Username", "Username+timestamp");
+            time = String.valueOf(System.currentTimeMillis());
+            GpsEntity gpsEntity = new GpsEntity("Username", "Username" + time);
             gpsEntity.setType("Gps");
             gpsEntity.setLatitude(gpsValues.get(countGpsValues));
             countGpsValues++;
@@ -146,7 +161,7 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
         countGpsValues = 0;
     }
 
-    public void insertEmergencyEntity(ArrayList<Double> emergencyValues) throws StorageException {
+    public void insertEmergencyEntity(ArrayList<Double> emergencyValues, boolean calledForHelpCheck) throws StorageException {
         // Note: the limitations on an insert operation are
         // - the serialized payload must be 1 MB or less
         // - up to 252 properties in addition to the partition key, row key and
@@ -154,11 +169,12 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
         // - the serialized payload of each property must be 64 KB or less
 
         // Create a new customer entity.
-        EmergencyEntity emergencyEntity = new EmergencyEntity("Username", "Username+timestamp");
+        time = String.valueOf(System.currentTimeMillis());
+        EmergencyEntity emergencyEntity = new EmergencyEntity("Username", "Username" + time);
         emergencyEntity.setType("Emergency");
         emergencyEntity.setLatitude(emergencyValues.get(0));
         emergencyEntity.setLongitude(emergencyValues.get(1));
-        emergencyEntity.setCalledForHelp(true);
+        emergencyEntity.setCalledForHelp(calledForHelpCheck);
         // Create an operation to add the new customer to the tablebasics table.
         TableOperation insertEmergency = TableOperation.insert(emergencyEntity);
 

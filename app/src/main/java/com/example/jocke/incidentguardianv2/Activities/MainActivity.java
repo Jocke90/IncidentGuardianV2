@@ -10,9 +10,7 @@ import com.example.jocke.incidentguardianv2.R;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final String storageConnectionString = "DefaultEndpointsProtocol=https;"
-            + "AccountName=[MY_ACCOUNT_NAME];"
-            + "AccountKey=[MY_ACCOUNT_KEY]";
+    public static final String storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=incidentguardian;AccountKey=X9Cygj3SSBlAz5zrHbCEivfSb/lh3PoDwKmFXaNB9ZH+aD4REG0OwnmHUPYGeOeDPQcPDIB0wkxoyFGCsdh4Gw==;EndpointSuffix=core.windows.net";
 
     Button btnLogin;
     Button btnRegister;

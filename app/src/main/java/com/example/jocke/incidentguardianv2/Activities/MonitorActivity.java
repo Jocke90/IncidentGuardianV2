@@ -67,6 +67,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     ArrayList<Double> gyrometerList;
     ArrayList<Double> gpsList;
     ArrayList<Double> emergencyList;
+    boolean calledForHelp = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +77,11 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText = (TextView) findViewById(R.id.textViewLatitude);
         longitudeText = (TextView) findViewById(R.id.textViewLongitude);
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
+
+        accelerometerList = new ArrayList<>();
+        gyrometerList = new ArrayList<>();
+        gpsList = new ArrayList<>();
+        emergencyList = new ArrayList<>();
 
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -144,7 +150,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         gpsList.add(myLongi);
 
         if(gpsList.size() == 9){
-            DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gps", gpsList);
+            DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gps", gpsList, calledForHelp);
             DataStorageClass dataStorageClass = new DataStorageClass();
             dataStorageClass.execute(params);
             gpsList.clear();
@@ -186,17 +192,17 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         Sensor mySensor = event.sensor;
 
         if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            acceX = (double) event.values[0];
-            acceY = (double) event.values[1];
-            acceZ = (double) event.values[2];
+            acceX = Double.parseDouble(Float.toString(event.values[0]));
+            acceY = Double.parseDouble(Float.toString(event.values[1]));
+            acceZ = Double.parseDouble(Float.toString(event.values[2]));
+            if(acceX != null && acceY != null && acceZ != null) {
+                accelerometerList.add(acceX);
+                accelerometerList.add(acceY);
+                accelerometerList.add(acceZ);
+            }
+            if(accelerometerList.size() == 29) {
 
-            accelerometerList.add(acceX);
-            accelerometerList.add(acceY);
-            accelerometerList.add(acceZ);
-
-            if(accelerometerList.size() == 299) {
-
-                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Accelerometer", accelerometerList);
+                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Accelerometer", accelerometerList, calledForHelp);
                 DataStorageClass dataStorageClass = new DataStorageClass();
                 dataStorageClass.execute(params);
                 accelerometerList.clear();
@@ -208,17 +214,18 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             }
         }
         if (mySensor.getType() == Sensor.TYPE_GYROSCOPE) {
-            gyroX = (double) event.values[0];
-            gyroY = (double) event.values[1];
-            gyroZ = (double) event.values[2];
+            gyroX = Double.parseDouble(Float.toString(event.values[0]));
+            gyroY = Double.parseDouble(Float.toString(event.values[1]));
+            gyroZ = Double.parseDouble(Float.toString(event.values[2]));
 
-            gyrometerList.add(gyroX);
-            gyrometerList.add(gyroY);
-            gyrometerList.add(gyroZ);
+            if(gyroX != null && gyroY != null && gyroZ != null) {
+                gyrometerList.add(gyroX);
+                gyrometerList.add(gyroY);
+                gyrometerList.add(gyroZ);
+            }
+            if(gyrometerList.size() == 29) {
 
-            if(gyrometerList.size() == 299) {
-
-                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gyrorometer", gyrometerList);
+                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gyrorometer", gyrometerList, calledForHelp);
                 DataStorageClass dataStorageClass = new DataStorageClass();
                 dataStorageClass.execute(params);
                 gyrometerList.clear();
@@ -238,6 +245,18 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
                 .setCancelable(false)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
+                        myLat = myLoc.getLatitude();
+                        myLongi = myLoc.getLongitude();
+                        emergencyList.add(myLat);
+                        emergencyList.add(myLongi);
+                        calledForHelp = false;
+
+                        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList, calledForHelp);
+                        DataStorageClass dataStorageClass = new DataStorageClass();
+                        dataStorageClass.execute(params);
+
+                        emergencyList.clear();
+
                         dialog.cancel();
                     }
                 })
@@ -323,8 +342,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             sendSMS(phoneNr, message);
         }
         Toast.makeText(MonitorActivity.this, "Emergency message sent to your contacts!", Toast.LENGTH_SHORT).show();
-
-        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList);
+        calledForHelp = true;
+        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList, calledForHelp);
         DataStorageClass dataStorageClass = new DataStorageClass();
         dataStorageClass.execute(params);
         emergencyList.clear();
