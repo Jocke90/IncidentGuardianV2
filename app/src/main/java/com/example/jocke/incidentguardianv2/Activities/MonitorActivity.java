@@ -22,6 +22,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.jocke.incidentguardianv2.DataStorageClass;
 import com.example.jocke.incidentguardianv2.R;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -36,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 public class MonitorActivity extends AppCompatActivity implements SensorEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
@@ -47,8 +49,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     private GoogleApiClient googleApiClient;
     private LocationRequest locationRequest;
     private Location myLoc;
-    public Double myLatitude;
-    public Double myLongitude;
+    public Double myLat;
+    public Double myLongi;
 
     private SensorManager sensorManager;
     private Sensor accelerometerS;
@@ -61,7 +63,10 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     String phoneNr;
     String message;
 
-
+    ArrayList<Double> accelerometerList;
+    ArrayList<Double> gyrometerList;
+    ArrayList<Double> gpsList;
+    ArrayList<Double> emergencyList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,10 +135,21 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     @Override
     public void onLocationChanged(Location location) {
         myLoc = location;
-        myLatitude = location.getLatitude();
-        myLongitude = location.getLongitude();
-        latitudeText.setText("Latitude : " + String.valueOf(myLatitude));
-        longitudeText.setText("Longitude : " + String.valueOf(myLongitude));
+        myLat = location.getLatitude();
+        myLongi = location.getLongitude();
+        latitudeText.setText("Latitude : " + String.valueOf(myLat));
+        longitudeText.setText("Longitude : " + String.valueOf(myLongi));
+
+        gpsList.add(myLat);
+        gpsList.add(myLongi);
+
+        if(gpsList.size() == 9){
+            DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gps", gpsList);
+            DataStorageClass dataStorageClass = new DataStorageClass();
+            dataStorageClass.execute(params);
+            gpsList.clear();
+        }
+
     }
 
     @Override
@@ -174,8 +190,20 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             acceY = (double) event.values[1];
             acceZ = (double) event.values[2];
 
+            accelerometerList.add(acceX);
+            accelerometerList.add(acceY);
+            accelerometerList.add(acceZ);
+
+            if(accelerometerList.size() == 299) {
+
+                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Accelerometer", accelerometerList);
+                DataStorageClass dataStorageClass = new DataStorageClass();
+                dataStorageClass.execute(params);
+                accelerometerList.clear();
+            }
+
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
-            if (fall < 3.0) {
+            if (fall < 2.0) {
                 fallDetected();
             }
         }
@@ -183,6 +211,18 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             gyroX = (double) event.values[0];
             gyroY = (double) event.values[1];
             gyroZ = (double) event.values[2];
+
+            gyrometerList.add(gyroX);
+            gyrometerList.add(gyroY);
+            gyrometerList.add(gyroZ);
+
+            if(gyrometerList.size() == 299) {
+
+                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gyrorometer", gyrometerList);
+                DataStorageClass dataStorageClass = new DataStorageClass();
+                dataStorageClass.execute(params);
+                gyrometerList.clear();
+            }
         }
 
     }
@@ -269,17 +309,27 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     }
 
     public void sendHelp(){
-        myLongitude = myLoc.getLongitude();
-        myLatitude = myLoc.getLatitude();
+        myLat = myLoc.getLatitude();
+        myLongi = myLoc.getLongitude();
+        emergencyList.add(myLat);
+        emergencyList.add(myLongi);
 
         contactInfo = readFileContacts();
-        message = readFileMessage() + " GPS coordinates: Latitude: " + String.valueOf(myLatitude) + " Longitude: " + String.valueOf(myLongitude);
+        message = readFileMessage() + " GPS Location, Latitude: " + String.valueOf(myLat) + " Longitude: " + String.valueOf(myLongi);
         String[] split = contactInfo.split("-");
         for(int i = 1; i < split.length; i = i + 2) {
 
             phoneNr = split[i].trim();
             sendSMS(phoneNr, message);
         }
+        Toast.makeText(MonitorActivity.this, "Emergency message sent to your contacts!", Toast.LENGTH_SHORT).show();
+
+        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList);
+        DataStorageClass dataStorageClass = new DataStorageClass();
+        dataStorageClass.execute(params);
+        emergencyList.clear();
+
+
     }
 
     private void sendSMS(String phoneNumber, String message) {

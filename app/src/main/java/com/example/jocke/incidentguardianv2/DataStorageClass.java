@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 
-public class DataStorageClass extends AsyncTask<String, Void ,Void> {
+public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, Void ,Void> {
 
     protected static CloudTableClient tableClient;
     protected static CloudTable tableCollectedData;
@@ -25,14 +25,39 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     int countGyrometerValues = 0;
     int countGpsValues = 0;
 
+    public static class MyTaskParams {
+        String type;
+        ArrayList<Double> results;
+
+        public MyTaskParams(String type, ArrayList<Double> results) {
+            this.type = type;
+            this.results = results;
+        }
+    }
+
     @Override
-    protected Void doInBackground(String... params) {
+    protected Void doInBackground(MyTaskParams... params) {
+        String type = params[0].type;
+        ArrayList<Double> results = params[1].results;
 
         try{
             CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
             tableClient = account.createCloudTableClient();
             tableCollectedData = tableClient.getTableReference(tableSensors + UUID.randomUUID().toString().replace("-", ""));
             tableCollectedData.createIfNotExists();
+
+            if(type.equals("Accelerometer")){
+                insertBatchAccelerometer(results);
+            }
+            else if(type.equals("Gyrometer")){
+                insertBatchGyrometer(results);
+            }
+            else if(type.equals("Gps")){
+                insertBatchGps(results);
+            }
+            else if(type.equals("Emergency")){
+                insertEmergencyEntity(results);
+            }
 
         }
         catch (Throwable t){
@@ -41,7 +66,9 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
         return null;
     }
 
-    public void InsertBatchAccelerometer(ArrayList<Double> accelerometerValues) throws StorageException {
+
+
+    public void insertBatchAccelerometer(ArrayList<Double> accelerometerValues) throws StorageException {
         // Note: the limitations on a batch operation are
         // - up to 100 operations
         // - all operations must share the same PartitionKey
@@ -67,7 +94,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
         tableCollectedData.execute(batchOperation);
         countAccelemeterValues = 0;
     }
-    public void InsertBatchGyrometer(ArrayList<Double> gyrometerValues) throws StorageException {
+    public void insertBatchGyrometer(ArrayList<Double> gyrometerValues) throws StorageException {
         // Note: the limitations on a batch operation are
         // - up to 100 operations
         // - all operations must share the same PartitionKey
@@ -94,7 +121,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
         countGyrometerValues = 0;
     }
 
-    public void InsertBatchGps(ArrayList<Double> gpsValues) throws StorageException {
+    public void insertBatchGps(ArrayList<Double> gpsValues) throws StorageException {
         // Note: the limitations on a batch operation are
         // - up to 100 operations
         // - all operations must share the same PartitionKey
@@ -119,7 +146,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
         countGpsValues = 0;
     }
 
-    public void InsertEmergencyEntity(Double latitude, Double longitude) throws StorageException {
+    public void insertEmergencyEntity(ArrayList<Double> emergencyValues) throws StorageException {
         // Note: the limitations on an insert operation are
         // - the serialized payload must be 1 MB or less
         // - up to 252 properties in addition to the partition key, row key and
@@ -129,8 +156,8 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
         // Create a new customer entity.
         EmergencyEntity emergencyEntity = new EmergencyEntity("Username", "Username+timestamp");
         emergencyEntity.setType("Emergency");
-        emergencyEntity.setLatitude(latitude);
-        emergencyEntity.setLongitude(longitude);
+        emergencyEntity.setLatitude(emergencyValues.get(0));
+        emergencyEntity.setLongitude(emergencyValues.get(1));
         emergencyEntity.setCalledForHelp(true);
         // Create an operation to add the new customer to the tablebasics table.
         TableOperation insertEmergency = TableOperation.insert(emergencyEntity);
