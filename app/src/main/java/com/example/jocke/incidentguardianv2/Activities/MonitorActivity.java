@@ -17,6 +17,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -63,11 +64,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     String phoneNr;
     String message;
 
-    ArrayList<Double> accelerometerList;
-    ArrayList<Double> gyrometerList;
-    ArrayList<Double> gpsList;
-    ArrayList<Double> emergencyList;
-    boolean calledForHelp = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,11 +73,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText = (TextView) findViewById(R.id.textViewLatitude);
         longitudeText = (TextView) findViewById(R.id.textViewLongitude);
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
-
-        accelerometerList = new ArrayList<>();
-        gyrometerList = new ArrayList<>();
-        gpsList = new ArrayList<>();
-        emergencyList = new ArrayList<>();
 
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -126,6 +117,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+
     }
 
     @Override
@@ -146,15 +138,10 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText.setText("Latitude : " + String.valueOf(myLat));
         longitudeText.setText("Longitude : " + String.valueOf(myLongi));
 
-        gpsList.add(myLat);
-        gpsList.add(myLongi);
+        DataStorageClass dcs = new DataStorageClass();
+        dcs.execute("Gps", String.valueOf(myLat), String.valueOf(myLongi));
 
-        if(gpsList.size() == 9){
-            DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gps", gpsList, calledForHelp);
-            DataStorageClass dataStorageClass = new DataStorageClass();
-            dataStorageClass.execute(params);
-            gpsList.clear();
-        }
+
 
     }
 
@@ -196,16 +183,10 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             acceY = Double.parseDouble(Float.toString(event.values[1]));
             acceZ = Double.parseDouble(Float.toString(event.values[2]));
             if(acceX != null && acceY != null && acceZ != null) {
-                accelerometerList.add(acceX);
-                accelerometerList.add(acceY);
-                accelerometerList.add(acceZ);
-            }
-            if(accelerometerList.size() == 29) {
 
-                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Accelerometer", accelerometerList, calledForHelp);
-                DataStorageClass dataStorageClass = new DataStorageClass();
-                dataStorageClass.execute(params);
-                accelerometerList.clear();
+                DataStorageClass dcs = new DataStorageClass();
+                dcs.execute("Accelerometer", String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
+
             }
 
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
@@ -219,17 +200,11 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             gyroZ = Double.parseDouble(Float.toString(event.values[2]));
 
             if(gyroX != null && gyroY != null && gyroZ != null) {
-                gyrometerList.add(gyroX);
-                gyrometerList.add(gyroY);
-                gyrometerList.add(gyroZ);
-            }
-            if(gyrometerList.size() == 29) {
 
-                DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Gyrorometer", gyrometerList, calledForHelp);
-                DataStorageClass dataStorageClass = new DataStorageClass();
-                dataStorageClass.execute(params);
-                gyrometerList.clear();
+                DataStorageClass dcs = new DataStorageClass();
+                dcs.execute("Gyrometer", String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
             }
+
         }
 
     }
@@ -247,16 +222,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
                     public void onClick(DialogInterface dialog, int id) {
                         myLat = myLoc.getLatitude();
                         myLongi = myLoc.getLongitude();
-                        emergencyList.add(myLat);
-                        emergencyList.add(myLongi);
-                        calledForHelp = false;
-
-                        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList, calledForHelp);
-                        DataStorageClass dataStorageClass = new DataStorageClass();
-                        dataStorageClass.execute(params);
-
-                        emergencyList.clear();
-
+                        DataStorageClass dcs = new DataStorageClass();
+                        dcs.execute("Emergency", String.valueOf(myLat), String.valueOf(myLongi), "false");
                         dialog.cancel();
                     }
                 })
@@ -330,8 +297,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public void sendHelp(){
         myLat = myLoc.getLatitude();
         myLongi = myLoc.getLongitude();
-        emergencyList.add(myLat);
-        emergencyList.add(myLongi);
 
         contactInfo = readFileContacts();
         message = readFileMessage() + " GPS Location, Latitude: " + String.valueOf(myLat) + " Longitude: " + String.valueOf(myLongi);
@@ -342,11 +307,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             sendSMS(phoneNr, message);
         }
         Toast.makeText(MonitorActivity.this, "Emergency message sent to your contacts!", Toast.LENGTH_SHORT).show();
-        calledForHelp = true;
-        DataStorageClass.MyTaskParams params = new DataStorageClass.MyTaskParams("Emergency", emergencyList, calledForHelp);
-        DataStorageClass dataStorageClass = new DataStorageClass();
-        dataStorageClass.execute(params);
-        emergencyList.clear();
+        DataStorageClass dcs = new DataStorageClass();
+        dcs.execute("Emergency", String.valueOf(myLat), String.valueOf(myLongi), "true");
 
 
     }

@@ -17,58 +17,63 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 
-public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, Void ,Void> {
+public class DataStorageClass extends AsyncTask<String, Void ,Void> {
 
     protected static CloudTableClient tableClient;
     protected static CloudTable tableCollectedData;
     protected final static String tableSensors = "CollectedData";
-    int countAccelemeterValues = 0;
-    int countGyrometerValues = 0;
-    int countGpsValues = 0;
+
     String time;
-
-    public static class MyTaskParams {
-        String type;
-        ArrayList<Double> results;
-        boolean calledForHelp;
-
-        public MyTaskParams(String type, ArrayList<Double> results, boolean calledForHelp) {
-            this.type = type;
-            this.results = results;
-            this.calledForHelp = calledForHelp;
-        }
-    }
+    String type;
+    Double posX;
+    Double posY;
+    Double posZ;
+    Double latitude;
+    Double longitude;
+    String checkCalledForHelp;
+    Boolean calledForHelp;
 
     @Override
-    protected Void doInBackground(MyTaskParams... params) {
-        String type = params[0].type;
-        ArrayList<Double> results = new ArrayList<>();
-        Log.d("RESULTS ERROR", String.valueOf(results));
-        results.addAll(params[1].results);
-        Log.d("RESULTS ERROR", String.valueOf(results));
-        boolean calledForHelp = params[2].calledForHelp;
+    protected Void doInBackground(String... params) {
+        type = params[0];
 
         try{
             CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
             tableClient = account.createCloudTableClient();
-            tableCollectedData = tableClient.getTableReference(tableSensors + UUID.randomUUID().toString().replace("-", ""));
+            tableCollectedData = tableClient.getTableReference(tableSensors);
             tableCollectedData.createIfNotExists();
 
             if(type.equals("Accelerometer")){
-                insertBatchAccelerometer(results);
-                results.clear();
+                posX = Double.parseDouble(params[1]);
+                posY = Double.parseDouble(params[2]);
+                posZ = Double.parseDouble(params[3]);
+                insertAccelerometerEntity(posX, posY, posZ);
+
             }
             else if(type.equals("Gyrometer")){
-                insertBatchGyrometer(results);
-                results.clear();
+                posX = Double.parseDouble(params[1]);
+                posY = Double.parseDouble(params[2]);
+                posZ = Double.parseDouble(params[3]);
+                insertGyrometerEntity(posX, posY, posZ);
             }
             else if(type.equals("Gps")){
-                insertBatchGps(results);
-                results.clear();
+                latitude = Double.parseDouble(params[1]);
+                longitude = Double.parseDouble(params[2]);
+                insertGpsEntity(latitude, longitude);
             }
             else if(type.equals("Emergency")){
-                insertEmergencyEntity(results, calledForHelp);
-                results.clear();
+                latitude = Double.parseDouble(params[1]);
+                longitude = Double.parseDouble(params[2]);
+                checkCalledForHelp = params[3];
+                if(checkCalledForHelp.equals("true")){
+                    calledForHelp = true;
+                    insertEmergencyEntity(latitude, longitude, calledForHelp);
+                }
+                else{
+                    calledForHelp = false;
+                    insertEmergencyEntity(latitude, longitude, calledForHelp);
+                }
+
             }
 
         }
@@ -80,101 +85,58 @@ public class DataStorageClass extends AsyncTask<DataStorageClass.MyTaskParams, V
 
 
 
-    public void insertBatchAccelerometer(ArrayList<Double> accelerometerValues) throws StorageException {
-        // Note: the limitations on a batch operation are
-        // - up to 100 operations
-        // - all operations must share the same PartitionKey
-        // - if a retrieve is used it can be the only operation in the batch
-        // - the serialized batch payload must be 4 MB or less
+    public void insertAccelerometerEntity(Double posX, Double posY, Double posZ) throws StorageException {
 
-        // Define a batch operation.
-        TableBatchOperation batchOperation = new TableBatchOperation();
+        time = String.valueOf(System.currentTimeMillis());
+        AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", "Username" + time);
+        accelerometerEntity.setType("Accelerometer");
+        accelerometerEntity.setPosX(posX);
+        accelerometerEntity.setPosY(posY);
+        accelerometerEntity.setPosZ(posZ);
 
-        while(countAccelemeterValues < accelerometerValues.size()){
-            time = String.valueOf(System.currentTimeMillis());
-            AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", "Username" + time);
-            accelerometerEntity.setType("Accelerometer");
-            accelerometerEntity.setPosX(accelerometerValues.get(countAccelemeterValues));
-            countAccelemeterValues++;
-            accelerometerEntity.setPosY(accelerometerValues.get(countAccelemeterValues));
-            countAccelemeterValues++;
-            accelerometerEntity.setPosZ(accelerometerValues.get(countAccelemeterValues));
-            countAccelemeterValues++;
-            batchOperation.insert(accelerometerEntity);
-        }
+        TableOperation insertAccelerometer = TableOperation.insert(accelerometerEntity);
 
-        // Execute the batch of operations on the "tablebasics" table.
-        tableCollectedData.execute(batchOperation);
-        countAccelemeterValues = 0;
+        // Submit the operation to the table service.
+        tableCollectedData.execute(insertAccelerometer);
     }
-    public void insertBatchGyrometer(ArrayList<Double> gyrometerValues) throws StorageException {
-        // Note: the limitations on a batch operation are
-        // - up to 100 operations
-        // - all operations must share the same PartitionKey
-        // - if a retrieve is used it can be the only operation in the batch
-        // - the serialized batch payload must be 4 MB or less
+    public void insertGyrometerEntity(Double posX, Double posY, Double posZ) throws StorageException {
 
-        // Define a batch operation.
-        TableBatchOperation batchOperation = new TableBatchOperation();
-
-        while(countGyrometerValues < gyrometerValues.size()){
             time = String.valueOf(System.currentTimeMillis());
             GyrometerEntity gyrometerEntity = new GyrometerEntity("Username", "Username" + time);
             gyrometerEntity.setType("Gyrometer");
-            gyrometerEntity.setPosX(gyrometerValues.get(countGyrometerValues));
-            countGyrometerValues++;
-            gyrometerEntity.setPosY(gyrometerValues.get(countGyrometerValues));
-            countGyrometerValues++;
-            gyrometerEntity.setPosZ(gyrometerValues.get(countGyrometerValues));
-            countGyrometerValues++;
-            batchOperation.insert(gyrometerEntity);
-        }
+            gyrometerEntity.setPosX(posX);
+            gyrometerEntity.setPosY(posY);
+            gyrometerEntity.setPosZ(posZ);
 
-        // Execute the batch of operations on the "tablebasics" table.
-        tableCollectedData.execute(batchOperation);
-        countGyrometerValues = 0;
+            TableOperation insertGyrometer = TableOperation.insert(gyrometerEntity);
+
+            // Submit the operation to the table service.
+            tableCollectedData.execute(insertGyrometer);
     }
 
-    public void insertBatchGps(ArrayList<Double> gpsValues) throws StorageException {
-        // Note: the limitations on a batch operation are
-        // - up to 100 operations
-        // - all operations must share the same PartitionKey
-        // - if a retrieve is used it can be the only operation in the batch
-        // - the serialized batch payload must be 4 MB or less
+    public void insertGpsEntity(Double latitude, Double longitude) throws StorageException {
 
-        // Define a batch operation.
-        TableBatchOperation batchOperation = new TableBatchOperation();
+        time = String.valueOf(System.currentTimeMillis());
+        GpsEntity gpsEntity = new GpsEntity("Username", "Username" + time);
+        gpsEntity.setType("Gps");
+        gpsEntity.setLatitude(latitude);
+        gpsEntity.setLongitude(longitude);
 
-        while(countGpsValues < gpsValues.size()){
-            time = String.valueOf(System.currentTimeMillis());
-            GpsEntity gpsEntity = new GpsEntity("Username", "Username" + time);
-            gpsEntity.setType("Gps");
-            gpsEntity.setLatitude(gpsValues.get(countGpsValues));
-            countGpsValues++;
-            gpsEntity.setLongitude(gpsValues.get(countGpsValues));
-            countGpsValues++;
-            batchOperation.insert(gpsEntity);
-        }
+        TableOperation insertGps = TableOperation.insert(gpsEntity);
 
-        // Execute the batch of operations on the "tablebasics" table.
-        tableCollectedData.execute(batchOperation);
-        countGpsValues = 0;
+        // Submit the operation to the table service.
+        tableCollectedData.execute(insertGps);
     }
 
-    public void insertEmergencyEntity(ArrayList<Double> emergencyValues, boolean calledForHelpCheck) throws StorageException {
-        // Note: the limitations on an insert operation are
-        // - the serialized payload must be 1 MB or less
-        // - up to 252 properties in addition to the partition key, row key and
-        // timestamp. 255 properties in total
-        // - the serialized payload of each property must be 64 KB or less
+    public void insertEmergencyEntity(Double latitude, Double longitude, boolean calledForHelp) throws StorageException {
 
-        // Create a new customer entity.
         time = String.valueOf(System.currentTimeMillis());
         EmergencyEntity emergencyEntity = new EmergencyEntity("Username", "Username" + time);
         emergencyEntity.setType("Emergency");
-        emergencyEntity.setLatitude(emergencyValues.get(0));
-        emergencyEntity.setLongitude(emergencyValues.get(1));
-        emergencyEntity.setCalledForHelp(calledForHelpCheck);
+        emergencyEntity.setLatitude(latitude);
+        emergencyEntity.setLongitude(longitude);
+        emergencyEntity.setCalledForHelp(calledForHelp);
+
         // Create an operation to add the new customer to the tablebasics table.
         TableOperation insertEmergency = TableOperation.insert(emergencyEntity);
 
