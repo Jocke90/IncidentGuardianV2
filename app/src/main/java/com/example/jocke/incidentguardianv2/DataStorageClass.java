@@ -2,26 +2,27 @@ package com.example.jocke.incidentguardianv2;
 
 
 import android.os.AsyncTask;
-import android.util.Log;
 
 import com.example.jocke.incidentguardianv2.Activities.MainActivity;
 import com.example.jocke.incidentguardianv2.Entities.AccelerometerEntity;
 import com.example.jocke.incidentguardianv2.Entities.EmergencyEntity;
 import com.example.jocke.incidentguardianv2.Entities.GpsEntity;
 import com.example.jocke.incidentguardianv2.Entities.GyrometerEntity;
+import com.example.jocke.incidentguardianv2.Entities.UserSensorEntity;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.*;
 
 import java.util.ArrayList;
-import java.util.UUID;
 
 
-public class DataStorageClass extends AsyncTask<String, Void ,Void> {
+public class DataStorageClass extends AsyncTask<String, Void , ArrayList<Object>> {
 
     protected static CloudTableClient tableClient;
     protected static CloudTable tableCollectedData;
-    protected final static String tableSensors = "CollectedData";
+    protected static CloudTable tableUserSensors;
+    protected final static String tableSensorData = "CollectedData";
+    protected final static String tableUserSensorStatus = "UserSensors";
 
     String time;
     String type;
@@ -33,15 +34,23 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     String checkCalledForHelp;
     Boolean calledForHelp;
 
+    ArrayList<Object> getDataValues;
+
+    MainActivity mAct = new MainActivity();
+
     @Override
-    protected Void doInBackground(String... params) {
+    protected ArrayList<Object> doInBackground(String... params) {
         type = params[0];
+        getDataValues = new ArrayList<>();
 
         try{
             CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
             tableClient = account.createCloudTableClient();
-            tableCollectedData = tableClient.getTableReference(tableSensors);
+            tableCollectedData = tableClient.getTableReference(tableSensorData);
             tableCollectedData.createIfNotExists();
+
+            tableUserSensors = tableClient.getTableReference(tableUserSensorStatus);
+            tableUserSensors.createIfNotExists();
 
             if(type.equals("Accelerometer")){
                 posX = Double.parseDouble(params[1]);
@@ -75,12 +84,21 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
                 }
 
             }
+            else if(type.equals("getData")){
+                getDataValues.addAll(getData(params[1]));
+            }
 
         }
         catch (Throwable t){
 
         }
-        return null;
+        return getDataValues;
+    }
+
+    @Override
+    protected void onPostExecute(ArrayList<Object> result)
+    {
+        mAct.getUserData(result);
     }
 
 
@@ -88,7 +106,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     public void insertAccelerometerEntity(Double posX, Double posY, Double posZ) throws StorageException {
 
         time = String.valueOf(System.currentTimeMillis());
-        AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", "Username" + time);
+        AccelerometerEntity accelerometerEntity = new AccelerometerEntity("Username", time);
         accelerometerEntity.setType("Accelerometer");
         accelerometerEntity.setPosX(posX);
         accelerometerEntity.setPosY(posY);
@@ -102,7 +120,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     public void insertGyrometerEntity(Double posX, Double posY, Double posZ) throws StorageException {
 
             time = String.valueOf(System.currentTimeMillis());
-            GyrometerEntity gyrometerEntity = new GyrometerEntity("Username", "Username" + time);
+            GyrometerEntity gyrometerEntity = new GyrometerEntity("Username", time);
             gyrometerEntity.setType("Gyrometer");
             gyrometerEntity.setPosX(posX);
             gyrometerEntity.setPosY(posY);
@@ -117,7 +135,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     public void insertGpsEntity(Double latitude, Double longitude) throws StorageException {
 
         time = String.valueOf(System.currentTimeMillis());
-        GpsEntity gpsEntity = new GpsEntity("Username", "Username" + time);
+        GpsEntity gpsEntity = new GpsEntity("Username", time);
         gpsEntity.setType("Gps");
         gpsEntity.setLatitude(latitude);
         gpsEntity.setLongitude(longitude);
@@ -131,7 +149,7 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
     public void insertEmergencyEntity(Double latitude, Double longitude, boolean calledForHelp) throws StorageException {
 
         time = String.valueOf(System.currentTimeMillis());
-        EmergencyEntity emergencyEntity = new EmergencyEntity("Username", "Username" + time);
+        EmergencyEntity emergencyEntity = new EmergencyEntity("Username", time);
         emergencyEntity.setType("Emergency");
         emergencyEntity.setLatitude(latitude);
         emergencyEntity.setLongitude(longitude);
@@ -142,5 +160,26 @@ public class DataStorageClass extends AsyncTask<String, Void ,Void> {
 
         // Submit the operation to the table service.
         tableCollectedData.execute(insertEmergency);
+    }
+
+    public ArrayList<Object> getData(String userName) throws StorageException {
+
+        ArrayList<Object> userData = new ArrayList<>();
+
+        String partitionFilter = TableQuery.generateFilterCondition(
+                "PartitionKey", TableQuery.QueryComparisons.EQUAL, userName);
+
+        TableQuery<UserSensorEntity> partitionQuery = TableQuery.from(
+                UserSensorEntity.class).where(partitionFilter);
+
+        // Loop through the results, displaying information about the entity.
+        for (UserSensorEntity entity : tableUserSensors.execute(partitionQuery)) {
+            userData.add(entity.getAccelerometer());
+            userData.add(entity.getGyrometer());
+            userData.add(entity.getGps());
+            userData.add(entity.getSampleRate());
+        }
+
+        return userData;
     }
 }

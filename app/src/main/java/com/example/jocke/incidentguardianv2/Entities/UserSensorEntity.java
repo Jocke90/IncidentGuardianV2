@@ -13,49 +13,50 @@ public class UserSensorEntity extends TableServiceEntity {
     public UserSensorEntity(){
     }
 
-    private boolean accelerometer;
-    private boolean gyrometer;
-    private boolean gps;
-    private boolean emergency;
-    private int sampleRate;
+    private Boolean accelerometer;
+    private Boolean gyrometer;
+    private Boolean gps;
+    private Boolean emergency;
+    private Integer sampleRate;
 
-    public boolean isAccelerometer() {
+
+    public Boolean getAccelerometer() {
         return accelerometer;
     }
 
-    public void setAccelerometer(boolean accelerometer) {
+    public void setAccelerometer(Boolean accelerometer) {
         this.accelerometer = accelerometer;
     }
 
-    public boolean isGyrometer() {
+    public Boolean getGyrometer() {
         return gyrometer;
     }
 
-    public void setGyrometer(boolean gyrometer) {
+    public void setGyrometer(Boolean gyrometer) {
         this.gyrometer = gyrometer;
     }
 
-    public boolean isGps() {
+    public Boolean getGps() {
         return gps;
     }
 
-    public void setGps(boolean gps) {
+    public void setGps(Boolean gps) {
         this.gps = gps;
     }
 
-    public int getSampleRate() {
-        return sampleRate;
-    }
-
-    public void setSampleRate(int sampleRate) {
-        this.sampleRate = sampleRate;
-    }
-
-    public boolean isEmergency() {
+    public Boolean getEmergency() {
         return emergency;
     }
 
-    public void setEmergency(boolean emergency) {
+    public void setEmergency(Boolean emergency) {
         this.emergency = emergency;
+    }
+
+    public Integer getSampleRate() {
+        return sampleRate;
+    }
+
+    public void setSampleRate(Integer sampleRate) {
+        this.sampleRate = sampleRate;
     }
 }
