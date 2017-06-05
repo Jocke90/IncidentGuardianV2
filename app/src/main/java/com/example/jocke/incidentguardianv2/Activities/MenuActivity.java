@@ -9,11 +9,19 @@ import android.widget.Button;
 
 import com.example.jocke.incidentguardianv2.R;
 
+import java.util.ArrayList;
+
 public class MenuActivity extends AppCompatActivity{
 
     Button btnStart;
     Button btnContacts;
     Button btnEmergencyMessage;
+
+    Boolean isAccelerometer;
+    Boolean isGyrometer;
+    Boolean isGps;
+    Boolean isEmergency;
+    Integer sampleRate;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,5 +53,13 @@ public class MenuActivity extends AppCompatActivity{
             }
         });
 
+    }
+
+    public void getUserData(ArrayList<Object> userData){
+        isAccelerometer = (Boolean) userData.get(0);
+        isGyrometer = (Boolean) userData.get(1);
+        isGps = (Boolean) userData.get(2);
+        isEmergency = (Boolean) userData.get(3);
+        sampleRate = (Integer) userData.get(4);
     }
 }

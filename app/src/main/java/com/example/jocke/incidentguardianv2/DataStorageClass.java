@@ -4,6 +4,7 @@ package com.example.jocke.incidentguardianv2;
 import android.os.AsyncTask;
 
 import com.example.jocke.incidentguardianv2.Activities.MainActivity;
+import com.example.jocke.incidentguardianv2.Activities.MenuActivity;
 import com.example.jocke.incidentguardianv2.Entities.AccelerometerEntity;
 import com.example.jocke.incidentguardianv2.Entities.EmergencyEntity;
 import com.example.jocke.incidentguardianv2.Entities.GpsEntity;
@@ -36,7 +37,7 @@ public class DataStorageClass extends AsyncTask<String, Void , ArrayList<Object>
 
     ArrayList<Object> getDataValues;
 
-    MainActivity mAct = new MainActivity();
+    MenuActivity mAct = new MenuActivity();
 
     @Override
     protected ArrayList<Object> doInBackground(String... params) {
