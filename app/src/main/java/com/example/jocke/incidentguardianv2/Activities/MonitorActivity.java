@@ -5,6 +5,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,6 +14,8 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -60,10 +63,18 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public Double gyroX, gyroY, gyroZ;
     private Double fall;
 
-    String contactInfo;
-    String phoneNr;
-    String message;
+    private String contactInfo;
+    private String phoneNr;
+    private String message;
+    private String userName;
 
+    private Boolean isAccelerometer;
+    private Boolean isGyrometer;
+    private Boolean isGps;
+    private Integer sampleRate;
+
+    private Handler handler;
+    private Runnable runnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +84,12 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText = (TextView) findViewById(R.id.textViewLatitude);
         longitudeText = (TextView) findViewById(R.id.textViewLongitude);
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
+
+        getUserSettings();
+        Toast.makeText(MonitorActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
+
+        DataStorageClass dcs = new DataStorageClass();
+        dcs.execute("getData", userName);
 
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -91,6 +108,33 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         sensorManager.registerListener(this, accelerometerS, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, gyrometerS, SensorManager.SENSOR_DELAY_NORMAL);
 
+        /*handler = new Handler();
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                if(isGps == true) {
+                    if (myLat != null && myLongi != null) {
+                        DataStorageClass dcs = new DataStorageClass();
+                        dcs.execute("Gps", String.valueOf(myLat), String.valueOf(myLongi));
+                    }
+                }
+                if(isAccelerometer == true) {
+                    if (acceX != null && acceY != null && acceZ != null) {
+                        DataStorageClass dcs = new DataStorageClass();
+                        dcs.execute("Accelerometer", String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
+                    }
+                }
+                if(isGyrometer == true) {
+                    if (gyroX != null && gyroY != null && gyroZ != null) {
+                        DataStorageClass dcs = new DataStorageClass();
+                        dcs.execute("Gyrometer", String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
+                    }
+                }
+                handler.postDelayed(runnable, sampleRate);
+            }
+        };
+        handler.post(runnable);
+*/
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -137,12 +181,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         myLongi = location.getLongitude();
         latitudeText.setText("Latitude : " + String.valueOf(myLat));
         longitudeText.setText("Longitude : " + String.valueOf(myLongi));
-
-        DataStorageClass dcs = new DataStorageClass();
-        dcs.execute("Gps", String.valueOf(myLat), String.valueOf(myLongi));
-
-
-
     }
 
     @Override
@@ -172,6 +210,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     protected void onStop() {
         super.onStop();
         googleApiClient.disconnect();
+        //handler.removeCallbacks(runnable);
     }
 
     @Override
@@ -182,12 +221,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             acceX = Double.parseDouble(Float.toString(event.values[0]));
             acceY = Double.parseDouble(Float.toString(event.values[1]));
             acceZ = Double.parseDouble(Float.toString(event.values[2]));
-            if(acceX != null && acceY != null && acceZ != null) {
-
-                DataStorageClass dcs = new DataStorageClass();
-                dcs.execute("Accelerometer", String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
-
-            }
 
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
             if (fall < 2.0) {
@@ -198,15 +231,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             gyroX = Double.parseDouble(Float.toString(event.values[0]));
             gyroY = Double.parseDouble(Float.toString(event.values[1]));
             gyroZ = Double.parseDouble(Float.toString(event.values[2]));
-
-            if(gyroX != null && gyroY != null && gyroZ != null) {
-
-                DataStorageClass dcs = new DataStorageClass();
-                dcs.execute("Gyrometer", String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
-            }
-
         }
-
     }
 
     @Override
@@ -318,6 +343,23 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         sms.sendTextMessage(phoneNumber, null, message, null, null);
     }
 
+    /*public void getUserData(ArrayList<Object> userData){
+        isAccelerometer = (Boolean) userData.get(0);
+        isGyrometer = (Boolean) userData.get(1);
+        isGps = (Boolean) userData.get(2);
+        sampleRate = (Integer) userData.get(3);
+        Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
+
+    }*/
+    public void getUserSettings(){
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        userName = sharedPref.getString("Username", "");
+        isAccelerometer = sharedPref.getBoolean("AccelerometerCheck", false);
+        isGyrometer = sharedPref.getBoolean("GyrorometerCheck", false);
+        isGps = sharedPref.getBoolean("GpsCheck", false);
+        sampleRate = sharedPref.getInt("Samplerate", 0);
+        Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
+    }
 
 
 }

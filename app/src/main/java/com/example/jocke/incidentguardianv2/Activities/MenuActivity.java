@@ -1,32 +1,36 @@
 package com.example.jocke.incidentguardianv2.Activities;
 
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.example.jocke.incidentguardianv2.R;
 
 import java.util.ArrayList;
+import java.util.prefs.Preferences;
 
 public class MenuActivity extends AppCompatActivity{
 
     Button btnStart;
     Button btnContacts;
     Button btnEmergencyMessage;
-
-    Boolean isAccelerometer;
-    Boolean isGyrometer;
-    Boolean isGps;
-    Boolean isEmergency;
-    Integer sampleRate;
+    String userName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        userName = sharedPref.getString("Username", "");
+        Toast.makeText(MenuActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
 
         btnStart = (Button) findViewById(R.id.buttonStartMonitoring);
         btnContacts = (Button) findViewById(R.id.buttonAddContact);
@@ -53,13 +57,5 @@ public class MenuActivity extends AppCompatActivity{
             }
         });
 
-    }
-
-    public void getUserData(ArrayList<Object> userData){
-        isAccelerometer = (Boolean) userData.get(0);
-        isGyrometer = (Boolean) userData.get(1);
-        isGps = (Boolean) userData.get(2);
-        isEmergency = (Boolean) userData.get(3);
-        sampleRate = (Integer) userData.get(4);
     }
 }

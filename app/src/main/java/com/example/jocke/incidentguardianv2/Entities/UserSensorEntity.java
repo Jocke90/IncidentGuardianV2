@@ -16,7 +16,6 @@ public class UserSensorEntity extends TableServiceEntity {
     private Boolean accelerometer;
     private Boolean gyrometer;
     private Boolean gps;
-    private Boolean emergency;
     private Integer sampleRate;
 
 
@@ -42,14 +41,6 @@ public class UserSensorEntity extends TableServiceEntity {
 
     public void setGps(Boolean gps) {
         this.gps = gps;
-    }
-
-    public Boolean getEmergency() {
-        return emergency;
-    }
-
-    public void setEmergency(Boolean emergency) {
-        this.emergency = emergency;
     }
 
     public Integer getSampleRate() {
