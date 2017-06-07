@@ -12,20 +12,20 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.jocke.incidentguardianv2.AsyncResponse;
 import com.example.jocke.incidentguardianv2.DataStorageClass;
 import com.example.jocke.incidentguardianv2.R;
 import com.google.android.gms.common.ConnectionResult;
@@ -35,12 +35,6 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -64,24 +58,21 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public Double acceX, acceY, acceZ;
     public Double gyroX, gyroY, gyroZ;
     private Double fall;
-
-    private String contactInfo;
-    private String phoneNr;
-    private String message;
     private String userName;
 
     private Boolean isAccelerometer;
     private Boolean isGyrometer;
     private Boolean isGps;
     private Integer sampleRate = 0;
-    private Integer counterSendData = 0;
+    public Integer counterSendData = 0;
 
     SharedPreferences sharedPref;
     SharedPreferences.Editor editor;
 
+    //ArrayList<Object> userSettingList;
+
     private Timer mTimer;
     private TimerTask mTimerTask;
-    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,13 +82,10 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText = (TextView) findViewById(R.id.textViewLatitude);
         longitudeText = (TextView) findViewById(R.id.textViewLongitude);
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
-
-        getUserSettings();
+        //userSettingList = new ArrayList<>();
         //Toast.makeText(MonitorActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
-
-        //DataStorageClass dcs = new DataStorageClass();
-        //dcs.execute("getData", userName);
-        //startTimer();
+        getUserSettings();
+        startTimer();
 
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -115,8 +103,6 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         gyrometerS = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         sensorManager.registerListener(this, accelerometerS, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, gyrometerS, SensorManager.SENSOR_DELAY_NORMAL);
-
-        handler = new Handler();
 
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -170,7 +156,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     protected void onStart() {
         super.onStart();
         googleApiClient.connect();
-        startTimer();
+        //startTimer();
     }
 
     @Override
@@ -231,38 +217,37 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
     }
 
-    public void getUserSettings(){
+    public void getUserSettings() {
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         userName = sharedPref.getString("Username", "");
-        //isAccelerometer = sharedPref.getBoolean("AccelerometerCheck", false);
-        //isGyrometer = sharedPref.getBoolean("GyrorometerCheck", false);
-        //isGps = sharedPref.getBoolean("GpsCheck", false);
-        //sampleRate = sharedPref.getInt("Samplerate", 0);
-        isAccelerometer = true;
-        isGps = true;
-        isGyrometer = true;
-        sampleRate = 10000;
-        //Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
+
     }
+
     public void sendData(){
-        //counterSendData++;
+        counterSendData++;
         if(isGps == true) {
             if (myLat != null && myLongi != null) {
-                DataStorageClass dcs = new DataStorageClass();
-                dcs.execute("Gps", userName, String.valueOf(myLat), String.valueOf(myLongi));
+                DataStorageClass dcs1 = new DataStorageClass();
+                Log.d("Isgps send data", "");
+                dcs1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "Gps", userName, String.valueOf(myLat), String.valueOf(myLongi));
             }
         }
         if(isAccelerometer == true) {
             if (acceX != null && acceY != null && acceZ != null) {
-                DataStorageClass dcs = new DataStorageClass();
-                dcs.execute("Accelerometer", userName, String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
+                DataStorageClass dcs2 = new DataStorageClass();
+                Log.d("IsAcce send data", "");
+                dcs2.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "Accelerometer", userName, String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
             }
         }
         if(isGyrometer == true) {
             if (gyroX != null && gyroY != null && gyroZ != null) {
-                DataStorageClass dcs = new DataStorageClass();
-                dcs.execute("Gyrometer", userName, String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
+                DataStorageClass dcs3 = new DataStorageClass();
+                Log.d("isGyro send data", "");
+                dcs3.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "Gyrometer", userName, String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
             }
+        }
+        if(counterSendData == 10){
+            counterSendData = 0;
         }
     }
 

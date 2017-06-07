@@ -17,10 +17,12 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.*;
 
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
 import java.util.ArrayList;
 
 
-public class DataStorageClass extends AsyncTask<String, Void , Void> {
+public class DataStorageClass extends AsyncTask<String, Void , ArrayList<Object>> {
 
     protected static CloudTableClient tableClient;
     protected static CloudTable tableCollectedData;
@@ -39,24 +41,20 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
     private Boolean calledForHelp;
 
     ArrayList<Object> getDataValues;
+    public AsyncResponse delegate = null;
 
     String userName;
 
+
     @Override
-    protected Void doInBackground(String... params) {
+    protected ArrayList<Object> doInBackground(String... params) {
         type = params[0];
         userName = params[1];
         getDataValues = new ArrayList<>();
 
+        Log.d("Type: ", type);
 
         try{
-            CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
-            tableClient = account.createCloudTableClient();
-            tableCollectedData = tableClient.getTableReference(tableSensorData);
-            tableCollectedData.createIfNotExists();
-
-            tableUserSensors = tableClient.getTableReference(tableUserSensorStatus);
-            tableUserSensors.createIfNotExists();
 
             if(type.equals("Accelerometer")){
                 posX = Double.parseDouble(params[2]);
@@ -91,17 +89,25 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
 
             }
             else if(type.equals("getData")){
-                getData(params[1]);
+                getDataValues.addAll(getData(params[1]));
             }
 
         }
         catch (Throwable t){
 
         }
-        return null;
+        return getDataValues;
+    }
+    @Override
+    protected void onPostExecute(ArrayList<Object> returnList){
+        delegate.processFinish(returnList);
     }
 
-    public void insertAccelerometerBatch(Double posX, Double posY, Double posZ) throws StorageException {
+    public void insertAccelerometerBatch(Double posX, Double posY, Double posZ) throws StorageException, URISyntaxException, InvalidKeyException {
+        CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
+        tableClient = account.createCloudTableClient();
+        tableCollectedData = tableClient.getTableReference(tableSensorData);
+        tableCollectedData.createIfNotExists();
 
         TableBatchOperation accelerometerBatchOperation = new TableBatchOperation();
 
@@ -114,10 +120,15 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         accelerometerEntity.setPosZ(posZ);
         accelerometerBatchOperation.insert(accelerometerEntity);
         // Submit the operation to the table service.
-            tableCollectedData.execute(accelerometerBatchOperation);
+
+        tableCollectedData.execute(accelerometerBatchOperation);
 
     }
-    public void insertGyrometerBatch(Double posX, Double posY, Double posZ) throws StorageException {
+    public void insertGyrometerBatch(Double posX, Double posY, Double posZ) throws StorageException, URISyntaxException, InvalidKeyException {
+        CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
+        tableClient = account.createCloudTableClient();
+        tableCollectedData = tableClient.getTableReference(tableSensorData);
+        tableCollectedData.createIfNotExists();
 
         TableBatchOperation gyrometerBatchOperation = new TableBatchOperation();
 
@@ -128,12 +139,18 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         gyrometerEntity.setPosX(posX);
         gyrometerEntity.setPosY(posY);
         gyrometerEntity.setPosZ(posZ);
+        gyrometerBatchOperation.insert(gyrometerEntity);
         // Submit the operation to the table service.
-            tableCollectedData.execute(gyrometerBatchOperation);
+
+        tableCollectedData.execute(gyrometerBatchOperation);
 
     }
 
-    public void insertGpsBatch(Double latitude, Double longitude) throws StorageException {
+    public void insertGpsBatch(Double latitude, Double longitude) throws StorageException, URISyntaxException, InvalidKeyException {
+        CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
+        tableClient = account.createCloudTableClient();
+        tableCollectedData = tableClient.getTableReference(tableSensorData);
+        tableCollectedData.createIfNotExists();
 
         TableBatchOperation gpsBatchOperation = new TableBatchOperation();
 
@@ -143,13 +160,18 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         gpsEntity.setType("Gps");
         gpsEntity.setLatitude(latitude);
         gpsEntity.setLongitude(longitude);
-
+        gpsBatchOperation.insert(gpsEntity);
         // Submit the operation to the table service.
-            tableCollectedData.execute(gpsBatchOperation);
+
+        tableCollectedData.execute(gpsBatchOperation);
 
     }
 
-    public void insertEmergencyEntity(Double latitude, Double longitude, boolean calledForHelp) throws StorageException {
+    public void insertEmergencyEntity(Double latitude, Double longitude, boolean calledForHelp) throws StorageException, URISyntaxException, InvalidKeyException {
+        CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
+        tableClient = account.createCloudTableClient();
+        tableCollectedData = tableClient.getTableReference(tableSensorData);
+        tableCollectedData.createIfNotExists();
 
         time = String.valueOf(System.currentTimeMillis());
         EmergencyEntity emergencyEntity = new EmergencyEntity(userName, time);
@@ -165,24 +187,16 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         tableCollectedData.execute(insertEmergency);
     }
 
-    public ArrayList<Object> getData(String userName) throws StorageException {
-
+    public ArrayList<Object> getData(String userName) throws StorageException, URISyntaxException, InvalidKeyException {
+        CloudStorageAccount account = CloudStorageAccount.parse(MainActivity.storageConnectionString);
+        tableClient = account.createCloudTableClient();
+        tableUserSensors = tableClient.getTableReference(tableUserSensorStatus);
+        tableUserSensors.createIfNotExists();
         ArrayList<Object> userData = new ArrayList<>();
 
-        String partitionFilter = TableQuery.generateFilterCondition(
-                "PartitionKey", TableQuery.QueryComparisons.EQUAL, userName);
+        String partitionFilter = TableQuery.generateFilterCondition("PartitionKey", TableQuery.QueryComparisons.EQUAL, userName);
 
-        TableQuery<UserSensorEntity> partitionQuery = TableQuery.from(
-                UserSensorEntity.class).where(partitionFilter);
-
-
-        /*SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putBoolean("AccelerometerCheck", true);
-        editor.putBoolean("GyrometerCheck", false);
-        editor.putBoolean("GpsCheck", true);
-        editor.putInt("Samplerate", 2000);
-        editor.commit();*/
+        TableQuery<UserSensorEntity> partitionQuery = TableQuery.from(UserSensorEntity.class).where(partitionFilter);
 
         //userData.add(true);
         //userData.add(false);
