@@ -42,6 +42,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MonitorActivity extends AppCompatActivity implements SensorEventListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
@@ -71,10 +73,15 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     private Boolean isAccelerometer;
     private Boolean isGyrometer;
     private Boolean isGps;
-    private Integer sampleRate;
+    private Integer sampleRate = 0;
+    private Integer counterSendData = 0;
 
+    SharedPreferences sharedPref;
+    SharedPreferences.Editor editor;
+
+    private Timer mTimer;
+    private TimerTask mTimerTask;
     private Handler handler;
-    private Runnable runnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,10 +93,11 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
 
         getUserSettings();
-        Toast.makeText(MonitorActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(MonitorActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
 
-        DataStorageClass dcs = new DataStorageClass();
-        dcs.execute("getData", userName);
+        //DataStorageClass dcs = new DataStorageClass();
+        //dcs.execute("getData", userName);
+        //startTimer();
 
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -108,33 +116,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         sensorManager.registerListener(this, accelerometerS, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, gyrometerS, SensorManager.SENSOR_DELAY_NORMAL);
 
-        /*handler = new Handler();
-        runnable = new Runnable() {
-            @Override
-            public void run() {
-                if(isGps == true) {
-                    if (myLat != null && myLongi != null) {
-                        DataStorageClass dcs = new DataStorageClass();
-                        dcs.execute("Gps", String.valueOf(myLat), String.valueOf(myLongi));
-                    }
-                }
-                if(isAccelerometer == true) {
-                    if (acceX != null && acceY != null && acceZ != null) {
-                        DataStorageClass dcs = new DataStorageClass();
-                        dcs.execute("Accelerometer", String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
-                    }
-                }
-                if(isGyrometer == true) {
-                    if (gyroX != null && gyroY != null && gyroZ != null) {
-                        DataStorageClass dcs = new DataStorageClass();
-                        dcs.execute("Gyrometer", String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
-                    }
-                }
-                handler.postDelayed(runnable, sampleRate);
-            }
-        };
-        handler.post(runnable);
-*/
+        handler = new Handler();
+
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -187,6 +170,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     protected void onStart() {
         super.onStart();
         googleApiClient.connect();
+        startTimer();
     }
 
     @Override
@@ -197,6 +181,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         if (googleApiClient.isConnected()) {
             requestLocationUpdates();
         }
+        //startTimer();
     }
 
     @Override
@@ -204,13 +189,14 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         super.onPause();
         sensorManager.unregisterListener(this);
         LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
+        stopTimer();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         googleApiClient.disconnect();
-        //handler.removeCallbacks(runnable);
+        stopTimer();
     }
 
     @Override
@@ -224,7 +210,13 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
             if (fall < 2.0) {
-                fallDetected();
+                myLat = myLoc.getLatitude();
+                myLongi = myLoc.getLongitude();
+                editor = sharedPref.edit();
+                editor.putString("Latitude", String.valueOf(myLat));
+                editor.putString("Longitude", String.valueOf(myLongi));
+                editor.commit();
+                startActivity(new Intent(MonitorActivity.this, FallDetectedActivity.class));
             }
         }
         if (mySensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -239,127 +231,56 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
     }
 
-    public void fallDetected(){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("A fall was detected, are you ok?")
-                .setCancelable(false)
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        myLat = myLoc.getLatitude();
-                        myLongi = myLoc.getLongitude();
-                        DataStorageClass dcs = new DataStorageClass();
-                        dcs.execute("Emergency", String.valueOf(myLat), String.valueOf(myLongi), "false");
-                        dialog.cancel();
-                    }
-                })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        sendHelp();
-                        dialog.cancel();
-                    }
-                });
-        AlertDialog alert = builder.create();
-        alert.show();
-    }
-
-    public String readFileContacts(){
-        String text = "";
-        File root = Environment.getExternalStorageDirectory();
-        File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
-        File file = new File(dir, "Contacts.txt");
-        StringBuilder sb = new StringBuilder();
-
-        try{
-            FileInputStream fis = new FileInputStream(file);
-            InputStreamReader isr = new InputStreamReader(fis);
-            BufferedReader buffer = new BufferedReader(isr);
-
-
-            while ((text = buffer.readLine()) != null){
-                sb.append(text);
-                sb.append("-");
-            }
-
-        }
-        catch (FileNotFoundException e){
-            e.printStackTrace();
-            Toast.makeText(MonitorActivity.this, "Error reading file!", Toast.LENGTH_SHORT).show();
-        }
-        catch(IOException e){
-            e.printStackTrace();
-        }
-        return sb.toString();
-    }
-
-    public String readFileMessage(){
-        String text = "";
-        File root = Environment.getExternalStorageDirectory();
-        File dir = new File(root.getAbsolutePath() + "/IncidentGuardianFolder");
-        File file = new File(dir, "EmergencyMessage.txt");
-        StringBuilder sb = new StringBuilder();
-
-        try{
-            FileInputStream fis = new FileInputStream(file);
-            InputStreamReader isr = new InputStreamReader(fis);
-            BufferedReader buffer = new BufferedReader(isr);
-
-
-            while ((text = buffer.readLine()) != null){
-                sb.append(text);
-            }
-
-        }
-        catch (FileNotFoundException e){
-            e.printStackTrace();
-            Toast.makeText(MonitorActivity.this, "Error reading file!", Toast.LENGTH_SHORT).show();
-        }
-        catch(IOException e){
-            e.printStackTrace();
-        }
-        return sb.toString();
-    }
-
-    public void sendHelp(){
-        myLat = myLoc.getLatitude();
-        myLongi = myLoc.getLongitude();
-
-        contactInfo = readFileContacts();
-        message = readFileMessage() + " GPS Location, Latitude: " + String.valueOf(myLat) + " Longitude: " + String.valueOf(myLongi);
-        String[] split = contactInfo.split("-");
-        for(int i = 1; i < split.length; i = i + 2) {
-
-            phoneNr = split[i].trim();
-            sendSMS(phoneNr, message);
-        }
-        Toast.makeText(MonitorActivity.this, "Emergency message sent to your contacts!", Toast.LENGTH_SHORT).show();
-        DataStorageClass dcs = new DataStorageClass();
-        dcs.execute("Emergency", String.valueOf(myLat), String.valueOf(myLongi), "true");
-
-
-    }
-
-    private void sendSMS(String phoneNumber, String message) {
-        SmsManager sms = SmsManager.getDefault();
-        sms.sendTextMessage(phoneNumber, null, message, null, null);
-    }
-
-    /*public void getUserData(ArrayList<Object> userData){
-        isAccelerometer = (Boolean) userData.get(0);
-        isGyrometer = (Boolean) userData.get(1);
-        isGps = (Boolean) userData.get(2);
-        sampleRate = (Integer) userData.get(3);
-        Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
-
-    }*/
     public void getUserSettings(){
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         userName = sharedPref.getString("Username", "");
-        isAccelerometer = sharedPref.getBoolean("AccelerometerCheck", false);
-        isGyrometer = sharedPref.getBoolean("GyrorometerCheck", false);
-        isGps = sharedPref.getBoolean("GpsCheck", false);
-        sampleRate = sharedPref.getInt("Samplerate", 0);
-        Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
+        //isAccelerometer = sharedPref.getBoolean("AccelerometerCheck", false);
+        //isGyrometer = sharedPref.getBoolean("GyrorometerCheck", false);
+        //isGps = sharedPref.getBoolean("GpsCheck", false);
+        //sampleRate = sharedPref.getInt("Samplerate", 0);
+        isAccelerometer = true;
+        isGps = true;
+        isGyrometer = true;
+        sampleRate = 10000;
+        //Toast.makeText(MonitorActivity.this, "Values from async: " + isAccelerometer + " " + isGyrometer + " " + isGps + " " + sampleRate, Toast.LENGTH_SHORT).show();
+    }
+    public void sendData(){
+        //counterSendData++;
+        if(isGps == true) {
+            if (myLat != null && myLongi != null) {
+                DataStorageClass dcs = new DataStorageClass();
+                dcs.execute("Gps", userName, String.valueOf(myLat), String.valueOf(myLongi));
+            }
+        }
+        if(isAccelerometer == true) {
+            if (acceX != null && acceY != null && acceZ != null) {
+                DataStorageClass dcs = new DataStorageClass();
+                dcs.execute("Accelerometer", userName, String.valueOf(acceX), String.valueOf(acceY), String.valueOf(acceZ));
+            }
+        }
+        if(isGyrometer == true) {
+            if (gyroX != null && gyroY != null && gyroZ != null) {
+                DataStorageClass dcs = new DataStorageClass();
+                dcs.execute("Gyrometer", userName, String.valueOf(gyroX), String.valueOf(gyroY), String.valueOf(gyroZ));
+            }
+        }
     }
 
+    private void startTimer(){
+        mTimer = new Timer();
+        mTimerTask = new TimerTask() {
+            public void run() {
+                sendData();
+            }
+        };
 
+        mTimer.schedule(mTimerTask, 1, sampleRate);
+    }
+
+    private void stopTimer(){
+        if(mTimer != null){
+            mTimer.cancel();
+            mTimer.purge();
+        }
+    }
 }

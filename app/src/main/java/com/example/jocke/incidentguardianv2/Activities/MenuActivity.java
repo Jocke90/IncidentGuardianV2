@@ -30,7 +30,6 @@ public class MenuActivity extends AppCompatActivity{
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         userName = sharedPref.getString("Username", "");
-        Toast.makeText(MenuActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
 
         btnStart = (Button) findViewById(R.id.buttonStartMonitoring);
         btnContacts = (Button) findViewById(R.id.buttonAddContact);

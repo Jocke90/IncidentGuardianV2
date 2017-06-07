@@ -36,6 +36,9 @@
         <activity
             android:name=".Activities.ViewContactsActivity"
             android:label="Contacts"/>
+        <activity
+            android:name=".Activities.FallDetectedActivity"
+            android:label="A fall was detected"/>
     </application>
 
 </manifest>

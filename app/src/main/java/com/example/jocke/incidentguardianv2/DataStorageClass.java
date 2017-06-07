@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.example.jocke.incidentguardianv2.Activities.MainActivity;
 import com.example.jocke.incidentguardianv2.Activities.MonitorActivity;
@@ -37,20 +38,14 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
     private String checkCalledForHelp;
     private Boolean calledForHelp;
 
-    private Integer countAccelerometerOperations = 0;
-    private Integer countGyrometerOperations = 0;
-    private Integer countGpsOperations = 0;
-
     ArrayList<Object> getDataValues;
 
     String userName;
-    Context context;
-
-    MonitorActivity mAct = new MonitorActivity();
 
     @Override
     protected Void doInBackground(String... params) {
         type = params[0];
+        userName = params[1];
         getDataValues = new ArrayList<>();
 
 
@@ -64,27 +59,27 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
             tableUserSensors.createIfNotExists();
 
             if(type.equals("Accelerometer")){
-                posX = Double.parseDouble(params[1]);
-                posY = Double.parseDouble(params[2]);
-                posZ = Double.parseDouble(params[3]);
+                posX = Double.parseDouble(params[2]);
+                posY = Double.parseDouble(params[3]);
+                posZ = Double.parseDouble(params[4]);
                 insertAccelerometerBatch(posX, posY, posZ);
 
             }
             else if(type.equals("Gyrometer")){
-                posX = Double.parseDouble(params[1]);
-                posY = Double.parseDouble(params[2]);
-                posZ = Double.parseDouble(params[3]);
+                posX = Double.parseDouble(params[2]);
+                posY = Double.parseDouble(params[3]);
+                posZ = Double.parseDouble(params[4]);
                 insertGyrometerBatch(posX, posY, posZ);
             }
             else if(type.equals("Gps")){
-                latitude = Double.parseDouble(params[1]);
-                longitude = Double.parseDouble(params[2]);
+                latitude = Double.parseDouble(params[2]);
+                longitude = Double.parseDouble(params[3]);
                 insertGpsBatch(latitude, longitude);
             }
             else if(type.equals("Emergency")){
-                latitude = Double.parseDouble(params[1]);
-                longitude = Double.parseDouble(params[2]);
-                checkCalledForHelp = params[3];
+                latitude = Double.parseDouble(params[2]);
+                longitude = Double.parseDouble(params[3]);
+                checkCalledForHelp = params[4];
                 if(checkCalledForHelp.equals("true")){
                     calledForHelp = true;
                     insertEmergencyEntity(latitude, longitude, calledForHelp);
@@ -118,13 +113,9 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         accelerometerEntity.setPosY(posY);
         accelerometerEntity.setPosZ(posZ);
         accelerometerBatchOperation.insert(accelerometerEntity);
-        countAccelerometerOperations++;
-
         // Submit the operation to the table service.
-        if(countAccelerometerOperations == 90) {
             tableCollectedData.execute(accelerometerBatchOperation);
-            countAccelerometerOperations = 0;
-        }
+
     }
     public void insertGyrometerBatch(Double posX, Double posY, Double posZ) throws StorageException {
 
@@ -137,13 +128,9 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         gyrometerEntity.setPosX(posX);
         gyrometerEntity.setPosY(posY);
         gyrometerEntity.setPosZ(posZ);
-        countGyrometerOperations++;
-
         // Submit the operation to the table service.
-        if(countGyrometerOperations == 90) {
             tableCollectedData.execute(gyrometerBatchOperation);
-            countGyrometerOperations = 0;
-        }
+
     }
 
     public void insertGpsBatch(Double latitude, Double longitude) throws StorageException {
@@ -156,13 +143,10 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         gpsEntity.setType("Gps");
         gpsEntity.setLatitude(latitude);
         gpsEntity.setLongitude(longitude);
-        countGpsOperations++;
 
         // Submit the operation to the table service.
-        if(countGpsOperations == 90) {
             tableCollectedData.execute(gpsBatchOperation);
-            countGpsOperations = 0;
-        }
+
     }
 
     public void insertEmergencyEntity(Double latitude, Double longitude, boolean calledForHelp) throws StorageException {
@@ -181,9 +165,9 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         tableCollectedData.execute(insertEmergency);
     }
 
-    public void getData(String userName) throws StorageException {
+    public ArrayList<Object> getData(String userName) throws StorageException {
 
-        //ArrayList<Object> userData = new ArrayList<>();
+        ArrayList<Object> userData = new ArrayList<>();
 
         String partitionFilter = TableQuery.generateFilterCondition(
                 "PartitionKey", TableQuery.QueryComparisons.EQUAL, userName);
@@ -192,13 +176,13 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
                 UserSensorEntity.class).where(partitionFilter);
 
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        /*SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putBoolean("AccelerometerCheck", true);
         editor.putBoolean("GyrometerCheck", false);
         editor.putBoolean("GpsCheck", true);
         editor.putInt("Samplerate", 2000);
-        editor.commit();
+        editor.commit();*/
 
         //userData.add(true);
         //userData.add(false);
@@ -207,12 +191,12 @@ public class DataStorageClass extends AsyncTask<String, Void , Void> {
         // Loop through the results, displaying information about the entity.
         for (UserSensorEntity entity : tableUserSensors.execute(partitionQuery)) {
 
-            //userData.add(entity.getAccelerometer());
-            //userData.add(entity.getGyrometer());
-            //userData.add(entity.getGps());
-            //userData.add(entity.getSampleRate());
+            userData.add(entity.getAccelerometer());
+            userData.add(entity.getGyrometer());
+            userData.add(entity.getGps());
+            userData.add(entity.getSampleRate());
         }
 
-        //return userData;
+        return userData;
     }
 }
