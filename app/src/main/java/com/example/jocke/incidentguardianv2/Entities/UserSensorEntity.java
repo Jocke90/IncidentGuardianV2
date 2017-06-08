@@ -2,6 +2,7 @@ package com.example.jocke.incidentguardianv2.Entities;
 
 import com.microsoft.azure.storage.table.TableServiceEntity;
 
+//Entity for User settings
 
 public class UserSensorEntity extends TableServiceEntity {
 
@@ -13,41 +14,41 @@ public class UserSensorEntity extends TableServiceEntity {
     public UserSensorEntity(){
     }
 
-    private Boolean accelerometer;
-    private Boolean gyrometer;
-    private Boolean gps;
-    private Integer sampleRate;
+    private Boolean Accelerometer;
+    private Boolean Gyrometer;
+    private Boolean Gps;
+    private int SampleRate;
 
 
     public Boolean getAccelerometer() {
-        return accelerometer;
+        return Accelerometer;
     }
 
     public void setAccelerometer(Boolean accelerometer) {
-        this.accelerometer = accelerometer;
+        Accelerometer = accelerometer;
     }
 
     public Boolean getGyrometer() {
-        return gyrometer;
+        return Gyrometer;
     }
 
     public void setGyrometer(Boolean gyrometer) {
-        this.gyrometer = gyrometer;
+        Gyrometer = gyrometer;
     }
 
     public Boolean getGps() {
-        return gps;
+        return Gps;
     }
 
     public void setGps(Boolean gps) {
-        this.gps = gps;
+        Gps = gps;
     }
 
-    public Integer getSampleRate() {
-        return sampleRate;
+    public int getSampleRate() {
+        return SampleRate;
     }
 
-    public void setSampleRate(Integer sampleRate) {
-        this.sampleRate = sampleRate;
+    public void setSampleRate(int sampleRate) {
+        SampleRate = sampleRate;
     }
 }

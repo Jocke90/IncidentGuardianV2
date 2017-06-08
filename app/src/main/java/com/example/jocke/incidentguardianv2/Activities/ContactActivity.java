@@ -47,6 +47,7 @@ public class ContactActivity extends AppCompatActivity{
         btnBack = (Button) findViewById(R.id.buttonBack);
         btnViewContacts = (Button) findViewById(R.id.buttonViewContacts);
 
+        //If user press one of the buttons change activity, one button called Add contact calls writeToFile method to store a new contact
         btnViewContacts.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -74,6 +75,8 @@ public class ContactActivity extends AppCompatActivity{
 
 
     }
+
+    //Method that writes to file on external storage on the phone, stores Contacts
     public void writeToFile(String data) {
 
             String state;

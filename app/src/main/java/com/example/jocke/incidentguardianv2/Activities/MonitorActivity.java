@@ -3,7 +3,6 @@ package com.example.jocke.incidentguardianv2.Activities;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -14,8 +13,6 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,9 +20,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.example.jocke.incidentguardianv2.AsyncResponse;
 import com.example.jocke.incidentguardianv2.DataStorageClass;
 import com.example.jocke.incidentguardianv2.R;
 import com.google.android.gms.common.ConnectionResult;
@@ -35,7 +30,6 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -82,22 +76,23 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         latitudeText = (TextView) findViewById(R.id.textViewLatitude);
         longitudeText = (TextView) findViewById(R.id.textViewLongitude);
         btnStop = (Button) findViewById(R.id.buttonStopMonitoring);
-        //userSettingList = new ArrayList<>();
-        //Toast.makeText(MonitorActivity.this, "Username from sharedpref: " + userName, Toast.LENGTH_SHORT).show();
         getUserSettings();
         startTimer();
 
+        //Setting up the connection to google api client
         googleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
 
+        //Setting up location request with set intervals, priority can be changed for higher accuarcy
         locationRequest = new LocationRequest();
         locationRequest.setInterval(30 * 1000);
         locationRequest.setFastestInterval(15 * 1000);
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
+        //Setting up for both Accelerometer and Gyrometer sensor
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometerS = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         gyrometerS = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -118,6 +113,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         requestLocationUpdates();
     }
 
+    //This method is for getting location updated for google api
     private void requestLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -143,6 +139,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
     }
 
+    //This method set values to latitude and longitude and they are updated when
+    //the location sense a change
     @Override
     public void onLocationChanged(Location location) {
         myLoc = location;
@@ -185,6 +183,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
         stopTimer();
     }
 
+    //This method updated posX, posY and posZ for Accelerometer and Gyrometer when values
+    //on them change
     @Override
     public void onSensorChanged(SensorEvent event) {
         Sensor mySensor = event.sensor;
@@ -194,6 +194,9 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             acceY = Double.parseDouble(Float.toString(event.values[1]));
             acceZ = Double.parseDouble(Float.toString(event.values[2]));
 
+            //fall is for calculating so the app can detect if a fall occurs, in free fall the
+            //the accelerometer values are near 0 so when threshold of 2 is passed both latitude
+            //and longitude are stored to shared preference then FallDetectedActivity is started,
             fall = Math.sqrt(Math.pow(acceX, 2) + Math.pow(acceY, 2) + Math.pow(acceZ, 2));
             if (fall < 2.0) {
                 myLat = myLoc.getLatitude();
@@ -216,13 +219,17 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
-
+    //Method for getting values from shared preferences
     public void getUserSettings() {
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         userName = sharedPref.getString("Username", "");
+        isAccelerometer = sharedPref.getBoolean("AccelerometerCheck", false);
+        isGyrometer = sharedPref.getBoolean("GyrometerCheck", false);
+        isGps = sharedPref.getBoolean("GpsCheck", false);
+        sampleRate = sharedPref.getInt("SampleRate", 0);
 
     }
-
+    //Method for starting new executes that depends which sensor is set to TRUE to asyncTask class
     public void sendData(){
         counterSendData++;
         if(isGps == true) {
@@ -250,7 +257,8 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
             counterSendData = 0;
         }
     }
-
+    //Method that is for setting how often sendData will run, this depends on which sampleRate is
+    //set for the user
     private void startTimer(){
         mTimer = new Timer();
         mTimerTask = new TimerTask() {
@@ -261,7 +269,7 @@ public class MonitorActivity extends AppCompatActivity implements SensorEventLis
 
         mTimer.schedule(mTimerTask, 1, sampleRate);
     }
-
+    //Method that stop the timer
     private void stopTimer(){
         if(mTimer != null){
             mTimer.cancel();

@@ -5,6 +5,8 @@ import com.microsoft.azure.storage.table.TableServiceEntity;
 
 public class EmergencyEntity extends TableServiceEntity{
 
+   //Entity for Emergency
+
     public EmergencyEntity(String userName, String timestamp){
         this.partitionKey = userName;
         this.rowKey = userName + timestamp;

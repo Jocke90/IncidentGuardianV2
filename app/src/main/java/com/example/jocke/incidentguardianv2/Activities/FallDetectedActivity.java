@@ -66,6 +66,7 @@ public class FallDetectedActivity extends AppCompatActivity {
 
     }
 
+    //This method read the txt file that is stored on the phone with the contacts
     public String readFileContacts(){
         String text = "";
         File root = Environment.getExternalStorageDirectory();
@@ -95,6 +96,7 @@ public class FallDetectedActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    //This method reads the txt file that contains the message that shall be sent when user needs help
     public String readFileMessage(){
         String text = "";
         File root = Environment.getExternalStorageDirectory();
@@ -123,6 +125,9 @@ public class FallDetectedActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    //This method is called when the user presses the button No, it reads the contact information only taking the phoneNr
+    //and then it reads in the message that shall be sent. After that it calls the sendSMS method and then makes a new execute
+    //to the asyncTask class so a new Emergency Entity can be made with Boolean calledForHelp = true
     public void sendHelp(){
         myLat = sharedPref.getString("Latitude", "");
         myLongi = sharedPref.getString("Longitude", "");
@@ -140,6 +145,8 @@ public class FallDetectedActivity extends AppCompatActivity {
         dcs.execute("Emergency", userName, String.valueOf(myLat), String.valueOf(myLongi), "true");
     }
 
+    //This method is called if the user presses Yes, it doesn't call the sendSMS method, it only makes a new execute
+    //to asyncTask class to store a new Emergecy Entity with Boolean calledForHelp = flase
     public void falseAlarm(){
         myLat = sharedPref.getString("Latitude", "");
         myLongi = sharedPref.getString("Longitude", "");
@@ -147,6 +154,7 @@ public class FallDetectedActivity extends AppCompatActivity {
         dcs.execute("Emergency", userName, String.valueOf(myLat), String.valueOf(myLongi), "false");
     }
 
+    //This method is for sending SMS
     private void sendSMS(String phoneNumber, String message) {
         SmsManager sms = SmsManager.getDefault();
         sms.sendTextMessage(phoneNumber, null, message, null, null);

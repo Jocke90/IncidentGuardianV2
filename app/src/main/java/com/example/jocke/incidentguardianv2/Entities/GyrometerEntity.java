@@ -3,6 +3,8 @@ package com.example.jocke.incidentguardianv2.Entities;
 
 import com.microsoft.azure.storage.table.TableServiceEntity;
 
+//Entity for Gyrometer
+
 public class GyrometerEntity extends TableServiceEntity{
 
     public GyrometerEntity(String userName, String timestamp){

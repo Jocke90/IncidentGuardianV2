@@ -29,15 +29,21 @@ public class MenuActivity extends AppCompatActivity implements AsyncResponse{
     private Boolean isGyrometer;
     private Boolean isGps;
     private Integer sampleRate = 0;
+    SharedPreferences sharedPref;
+    SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = sharedPref.edit();
         userName = sharedPref.getString("Username", "");
 
+        //Starts a new execute to asyncTask class to get user settings for sensors and sample rate, it is stored
+        //to an ArrayList. dcs.delegate is for the interface AsyncResponse which enables to store the values
+        //in an ArrayList in asyncTask onPostExecute method
         DataStorageClass dcs = new DataStorageClass();
         dcs.delegate = this;
         dcs.execute("getData", userName);
@@ -69,16 +75,20 @@ public class MenuActivity extends AppCompatActivity implements AsyncResponse{
 
     }
 
+    //This method fetches the values from asyncTask class and is ran in onPostExecute method
+    //Then the values are stored to shared preferences so they can be fetched in MonitorActivity
     @Override
     public void processFinish(ArrayList<Object> returnList) {
         isAccelerometer = (Boolean) returnList.get(0);
         isGyrometer = (Boolean) returnList.get(1);
         isGps = (Boolean) returnList.get(2);
         sampleRate = (Integer) returnList.get(3);
-        //isAccelerometer = true;
-        //isGps = true;
-        //isGyrometer = true;
-        //sampleRate = 1000;
+        editor.putBoolean("AccelerometerCheck", isAccelerometer);
+        editor.putBoolean("GyrometerCheck", isGyrometer);
+        editor.putBoolean("GpsCheck", isGps);
+        editor.putInt("SampleRate", sampleRate);
+        editor.commit();
+
         Toast.makeText(MenuActivity.this, "Values from async: " + String.valueOf(isAccelerometer) + " " + String.valueOf(isGyrometer) + " " + String.valueOf(isGps) + " " + String.valueOf(sampleRate), Toast.LENGTH_SHORT).show();
     }
 }

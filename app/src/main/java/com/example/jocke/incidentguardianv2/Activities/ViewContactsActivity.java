@@ -45,6 +45,8 @@ public class ViewContactsActivity extends AppCompatActivity
             });
         }
 
+    //This method is used to read the txt file with the users contacts and the present them
+    //in a listview, the listview is populated with help of an ArrayAdapter
     public String readFileContacts(){
         String text = "";
         ArrayList<String> lines = new ArrayList<>();

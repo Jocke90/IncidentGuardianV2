@@ -3,6 +3,8 @@ package com.example.jocke.incidentguardianv2.Entities;
 
 import com.microsoft.azure.storage.table.TableServiceEntity;
 
+//Entity for Accelerometer
+
 public class AccelerometerEntity extends TableServiceEntity {
 
     public AccelerometerEntity(String userName, String timestamp){

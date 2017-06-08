@@ -64,6 +64,8 @@ public class MessageActivity extends AppCompatActivity {
         });
     }
 
+    //This method is to write to a txt file on external storage with what message
+    //the user would like to be sent to it's contacts when an emergency occurs
     public void writeToFile(String data) {
 
         String state;
@@ -99,6 +101,8 @@ public class MessageActivity extends AppCompatActivity {
         }
 
     }
+    //This method is to read the txt file with the message to it can be presented in a textview
+    //so the user can se what current message is set
     public String readFileMessage(){
         String text = "";
         File root = Environment.getExternalStorageDirectory();
